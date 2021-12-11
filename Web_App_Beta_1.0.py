@@ -23,7 +23,7 @@ import time
 from math import sqrt
 
 st.title("Beta: 1.0")
-st.markdown('An easy to use Python web application to develop regressiom, decision tree, and neural network model based on exisitng historical data.')
+st.markdown('An easy to use Python web application to develop regression, decision tree, and neural network model based on exisitng historical data.')
 st.markdown('**Developer contact:** dannyhartantodjarum@gmail.com')
 
 st.sidebar.title('Settings')
@@ -623,6 +623,7 @@ if choose_model == "Neural Network":
         if check_graph_nn == True:
             st.subheader('Model Loss Graph')
             plt.plot(history.history['val_loss'])
+            plt.color='#339E98'
             plt.title('Model Loss')
             plt.ylabel('loss')
             plt.xlabel('epoch')
