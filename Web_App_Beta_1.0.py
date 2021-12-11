@@ -460,17 +460,16 @@ if choose_model == "Regression/Decision Tree":
             model.fit(train_prepared, train_labels)
             time_end = time.time()
             model_score = model.score(X_test, y_test)
-            model_score = model_score * 100
-            model_score = str(round(model_score, 2))
+            model_score = str(round(model_score, 4))
 
         # Display the R2 values
-        st.subheader('Test Accuracy Score:')
-        st.write(model_score + '%')
+        st.subheader('R2 value:')
+        st.write(model_score)
 
         # Display RMSE
-        st.subheader('RMSE:')
+        st.subheader('RMSE value:')
         rmse_text = sqrt(mean_squared_error(y_test, model.predict(X_test)))
-        rmse_text = str(round(rmse_text, 2))
+        rmse_text = str(round(rmse_text, 4))
         st.write(rmse_text)
 
         # Display model training time
@@ -611,9 +610,11 @@ if choose_model == "Neural Network":
         R2 = r2_score(y_test, y_pred, multioutput='variance_weighted')
         R2 = round(R2, 4)
         R2 = str(R2)
-        st.subheader('R2 Score')
+        # Display R2 value
+        st.subheader('R2 value')
         st.write(R2)
-        st.subheader('MSE Score')
+        # Display loss value
+        st.subheader('Loss value')
         mse_test = str(round(mse_test, 4))
         st.write(mse_test)
 
