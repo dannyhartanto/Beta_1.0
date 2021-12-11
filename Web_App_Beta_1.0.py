@@ -44,6 +44,9 @@ corr_analysis = st.sidebar.checkbox('Correlation Analysis', value=False, key=Non
 pp_graph = st.sidebar.checkbox('Pair Plot Graph', value=False, key=None)
 hm_graph = st.sidebar.checkbox('Heat Map Correlation', value=False, key=None)
 
+#Dismiss plotting warning
+st.set_option('deprecation.showPyplotGlobalUse', False)
+
 #Subheader model settings - side bar
 st.sidebar.subheader('Preprocessing')
 #User remove non-numeric columns
@@ -618,7 +621,6 @@ if choose_model == "Neural Network":
         # summarize history for loss
         if check_graph_nn == True:
             st.subheader('Model Loss Graph')
-            st.set_option('deprecation.showPyplotGlobalUse', False)
             plt.plot(history.history['val_loss'])
             plt.title('Model Loss')
             plt.ylabel('loss')
