@@ -22,8 +22,8 @@ import seaborn as sns
 import time
 from math import sqrt
 
-st.title("Alpha: 1.5")
-st.markdown('An easy to use Python web application to develop prediction model (regression) based on exisitng historical data.')
+st.title("Beta: 1.0")
+st.markdown('An easy to use Python web application to develop regressiom, decision tree, and neural network model based on exisitng historical data.')
 st.markdown('**Developer contact:** dannyhartantodjarum@gmail.com')
 
 st.sidebar.title('Settings')
@@ -109,7 +109,7 @@ if train_model == True and choose_model == "Regression/Decision Tree":
 # If neural network model selected
 if  train_model == True and choose_model == "Neural Network":
     # Actual vs predicted graph
-    check_graph_nn = st.sidebar.checkbox('Model Loss Graph', value=False, key=None)
+    check_graph_nn = st.sidebar.checkbox('Model Loss Graph', value=True, key=None)
     # Test data set size - User Input
     test_data = st.sidebar.number_input('Test & Validation Data Size (%)', 0, 100, 20)
     test_data = test_data * 0.01
@@ -352,7 +352,6 @@ if pp_graph == True:
 
 #Split the data into X and Y
 if train_model == True:
-    st.header('Prediction Model:')
     if remove_string == True or encode_string == True:
         y = csv_data[out_param]
         X = csv_data[in_param]
@@ -363,257 +362,268 @@ else:
     st.stop()
 
 if choose_model == "Regression/Decision Tree":
-    # Split the data into test and training set
-    from sklearn.model_selection import train_test_split
+    st.header('Prediction Model (Regression/Decision Tree):')
+    if st.button('Train Model'):
+        # Split the data into test and training set
+        from sklearn.model_selection import train_test_split
 
-    train_prepared, X_test, train_labels, y_test = train_test_split(X, y, test_size=test_data, random_state=1234)
-
-
-    # Define the selected data scaler
-    def get_scaler(scl_name):
-        if scl_name == "Standard Scaler":
-            scaler = preprocessing.StandardScaler()
-        elif scl_name == "Normalizer":
-            scaler = preprocessing.Normalizer()
-        elif scl_name == "Min-Max Scaler":
-            scaler = preprocessing.MinMaxScaler(feature_range=(0, 1))
-        elif scl_name == "Quantile Transformer":
-            scaler = preprocessing.QuantileTransformer()
-        elif scl_name == "Power Transformer":
-            scaler = preprocessing.PowerTransformer()
-        elif scl_name == "Robust Scaler":
-            scaler = preprocessing.RobustScaler()
-        else:
-            scaler = None
-        return scaler
+        train_prepared, X_test, train_labels, y_test = train_test_split(X, y, test_size=test_data, random_state=1234)
 
 
-    scaler = get_scaler(scaler_name)
-
-    # Fit your data on the scaler object
-    try:
-        train_prepared = scaler.fit_transform(train_prepared)
-        X_test = scaler.transform(X_test)
-    except AttributeError:
-        train_prepared = train_prepared
-        X_test = X_test
-    except ValueError:
-        st.warning(scaler_name + " does not work this data set. Please select a different data scaler.")
-        st.warning('If issues persisted, please contact developer')
-        st.stop()
-
-
-    # Data reduction Technique
-    def get_reduction(data_reduc):
-        if data_reduc == "PCA":
-            reduction = PCA(n_components=no_dimen)
-        elif data_reduc == "LDA":
-            reduction = LinearDiscriminantAnalysis(n_components=no_dimen)
-        elif data_reduc == "ICA":
-            reduction = FastICA(n_components=no_dimen)
-        elif data_reduc == "SVD":
-            reduction = TruncatedSVD(n_components=no_dimen, n_iter=10, random_state=42)
-        else:
-            reduction = None
-        return reduction
-
-
-    reduction = get_reduction(reduction_name)
-
-    # Perform data reduction
-    if reduction_name == "LDA":
-        train_labels = train_labels.astype('int')
-        train_prepared = reduction.fit_transform(train_prepared, train_labels)
-        X_test = reduction.transform(X_test)
-    elif reduction_name == "None":
-        train_prepared = train_prepared
-        X_test = X_test
-    else:
-        train_prepared = reduction.fit_transform(train_prepared)
-        X_test = reduction.transform(X_test)
-
-
-    # Define the selected prediction model
-    def get_regresson(rgsr_name, params):
-        if rgsr_name == "Multi linear Regression":
-            model = LinearRegression(n_jobs=params["n_jobs"])
-        elif rgsr_name == "Random Forest Regression":
-            model = RandomForestRegressor(n_estimators=params["n_estimators"],
-                                          min_samples_split=params["min_samples_split"])
-        elif rgsr_name == "Extra Tree Regression":
-            model = ExtraTreesRegressor(n_estimators=params["n_estimators"],
-                                        min_samples_split=params["min_samples_split"], random_state=1234)
-        else:
-            model = AdaBoostRegressor(DecisionTreeRegressor(), n_estimators=params["n_estimators"], learning_rate=1)
-        return model
-
-
-    model = get_regresson(regressor_name, params)
-
-    # Create and train the model
-    with st.spinner('Calculating...'):
-        time_start = time.time()
-        model.fit(train_prepared, train_labels)
-        time_end = time.time()
-        model_score = model.score(X_test, y_test)
-        model_score = model_score * 100
-        model_score = str(round(model_score, 2))
-
-    # Display the R2 values
-    st.subheader('Test Accuracy Score:')
-    st.write(model_score + '%')
-
-    # Display RMSE
-    st.subheader('RMSE:')
-    rmse_text = sqrt(mean_squared_error(y_test, model.predict(X_test)))
-    rmse_text = str(round(rmse_text, 2))
-    st.write(rmse_text)
-
-    # Display model training time
-    training_time = time_end - time_start
-    training_time = str(round(training_time, 2))
-    st.subheader('Training Time')
-    st.write(training_time + ' s')
-
-    # Display actual vs predicted graph
-    if check_graph == True:
-        model_pred = model.predict(X_test)
-        plt.rcParams["figure.figsize"] = [10, 10]
-        plt.scatter(y_test, model_pred, color='#339E98')
-        m, b = np.polyfit(y_test, model_pred, 1)
-        plt.xlabel('Measured')
-        plt.ylabel('Predicted')
-        plt.title(regressor_name)
-        plt.plot(y_test, m * y_test + b, color='#F63366')
-        st.subheader('Actual vs Predicted Graph:')
-        with st.spinner('Plotting...'):
-            st.pyplot()
-
-    # Grid search (Parameter Tuning)
-    if auto_tuning == True:
-        st.subheader('Parameter Tuning:')
-        if st.button('Run Grid Search'):
-            if regressor_name == 'Random Forest Regression' or regressor_name == 'Extra Tree Regression':
-                param_grid = [{'n_estimators': [60, 80, 100, 120], 'min_samples_split': [2, 5, 8, 10]}]
-            elif regressor_name == 'Multi linear Regression':
-                param_grid = [{'n_jobs': [1, 2, 4, 8, 10]}]
+        # Define the selected data scaler
+        def get_scaler(scl_name):
+            if scl_name == "Standard Scaler":
+                scaler = preprocessing.StandardScaler()
+            elif scl_name == "Normalizer":
+                scaler = preprocessing.Normalizer()
+            elif scl_name == "Min-Max Scaler":
+                scaler = preprocessing.MinMaxScaler(feature_range=(0, 1))
+            elif scl_name == "Quantile Transformer":
+                scaler = preprocessing.QuantileTransformer()
+            elif scl_name == "Power Transformer":
+                scaler = preprocessing.PowerTransformer()
+            elif scl_name == "Robust Scaler":
+                scaler = preprocessing.RobustScaler()
             else:
-                param_grid = [{'n_estimators': [60, 80, 100, 120]}]
-            grid_search = GridSearchCV(model, param_grid, cv=5, scoring='neg_mean_squared_error',
-                                       return_train_score=True)
-            grid_search.fit(train_prepared, train_labels)
-            st.write(grid_search.best_params_)
+                scaler = None
+            return scaler
 
-    st.sidebar.subheader('')
+
+        scaler = get_scaler(scaler_name)
+
+        # Fit your data on the scaler object
+        try:
+            train_prepared = scaler.fit_transform(train_prepared)
+            X_test = scaler.transform(X_test)
+        except AttributeError:
+            train_prepared = train_prepared
+            X_test = X_test
+        except ValueError:
+            st.warning(scaler_name + " does not work this data set. Please select a different data scaler.")
+            st.warning('If issues persisted, please contact developer')
+            st.stop()
+
+
+        # Data reduction Technique
+        def get_reduction(data_reduc):
+            if data_reduc == "PCA":
+                reduction = PCA(n_components=no_dimen)
+            elif data_reduc == "LDA":
+                reduction = LinearDiscriminantAnalysis(n_components=no_dimen)
+            elif data_reduc == "ICA":
+                reduction = FastICA(n_components=no_dimen)
+            elif data_reduc == "SVD":
+                reduction = TruncatedSVD(n_components=no_dimen, n_iter=10, random_state=42)
+            else:
+                reduction = None
+            return reduction
+
+
+        reduction = get_reduction(reduction_name)
+
+        # Perform data reduction
+        if reduction_name == "LDA":
+            train_labels = train_labels.astype('int')
+            train_prepared = reduction.fit_transform(train_prepared, train_labels)
+            X_test = reduction.transform(X_test)
+        elif reduction_name == "None":
+            train_prepared = train_prepared
+            X_test = X_test
+        else:
+            train_prepared = reduction.fit_transform(train_prepared)
+            X_test = reduction.transform(X_test)
+
+
+        # Define the selected prediction model
+        def get_regresson(rgsr_name, params):
+            if rgsr_name == "Multi linear Regression":
+                model = LinearRegression(n_jobs=params["n_jobs"])
+            elif rgsr_name == "Random Forest Regression":
+                model = RandomForestRegressor(n_estimators=params["n_estimators"],
+                                              min_samples_split=params["min_samples_split"])
+            elif rgsr_name == "Extra Tree Regression":
+                model = ExtraTreesRegressor(n_estimators=params["n_estimators"],
+                                            min_samples_split=params["min_samples_split"], random_state=1234)
+            else:
+                model = AdaBoostRegressor(DecisionTreeRegressor(), n_estimators=params["n_estimators"], learning_rate=1)
+            return model
+
+
+        model = get_regresson(regressor_name, params)
+
+        # Create and train the model
+        with st.spinner('Calculating...'):
+            time_start = time.time()
+            model.fit(train_prepared, train_labels)
+            time_end = time.time()
+            model_score = model.score(X_test, y_test)
+            model_score = model_score * 100
+            model_score = str(round(model_score, 2))
+
+        # Display the R2 values
+        st.subheader('Test Accuracy Score:')
+        st.write(model_score + '%')
+
+        # Display RMSE
+        st.subheader('RMSE:')
+        rmse_text = sqrt(mean_squared_error(y_test, model.predict(X_test)))
+        rmse_text = str(round(rmse_text, 2))
+        st.write(rmse_text)
+
+        # Display model training time
+        training_time = time_end - time_start
+        training_time = str(round(training_time, 2))
+        st.subheader('Training Time')
+        st.write(training_time + ' s')
+
+        # Display actual vs predicted graph
+        if check_graph == True:
+            model_pred = model.predict(X_test)
+            plt.rcParams["figure.figsize"] = [10, 10]
+            plt.scatter(y_test, model_pred, color='#339E98')
+            m, b = np.polyfit(y_test, model_pred, 1)
+            plt.xlabel('Measured')
+            plt.ylabel('Predicted')
+            plt.title(regressor_name)
+            plt.plot(y_test, m * y_test + b, color='#F63366')
+            st.subheader('Actual vs Predicted Graph:')
+            with st.spinner('Plotting...'):
+                st.pyplot()
+
+        # Grid search (Parameter Tuning)
+        if auto_tuning == True:
+            st.subheader('Parameter Tuning:')
+            if st.button('Run Grid Search'):
+                if regressor_name == 'Random Forest Regression' or regressor_name == 'Extra Tree Regression':
+                    param_grid = [{'n_estimators': [60, 80, 100, 120], 'min_samples_split': [2, 5, 8, 10]}]
+                elif regressor_name == 'Multi linear Regression':
+                    param_grid = [{'n_jobs': [1, 2, 4, 8, 10]}]
+                else:
+                    param_grid = [{'n_estimators': [60, 80, 100, 120]}]
+                grid_search = GridSearchCV(model, param_grid, cv=5, scoring='neg_mean_squared_error',
+                                           return_train_score=True)
+                grid_search.fit(train_prepared, train_labels)
+                st.write(grid_search.best_params_)
+
+        st.sidebar.subheader('')
 
 if choose_model == "Neural Network":
+    st.header('Prediction Model (Neural Network):')
+    if st.button('Train Model'):
+        # Splitting the data to training, test, and validation dataset
+        from sklearn.model_selection import train_test_split
 
-    # Splitting the data to training, test, and validation dataset
-    from sklearn.model_selection import train_test_split
-    train_prepared_full, X_test, train_labels_full, y_test = train_test_split(X, y, test_size=test_data, random_state=1234)
-    train_prepared, X_valid, train_labels, y_valid = train_test_split(train_prepared_full, train_labels_full, test_size=0.2, random_state=1234)
-
-    # Define the selected data scaler
-    def get_scaler(scl_name):
-        if scl_name == "Standard Scaler":
-            scaler = preprocessing.StandardScaler()
-        elif scl_name == "Normalizer":
-            scaler = preprocessing.Normalizer()
-        elif scl_name == "Min-Max Scaler":
-            scaler = preprocessing.MinMaxScaler(feature_range=(0, 1))
-        elif scl_name == "Quantile Transformer":
-            scaler = preprocessing.QuantileTransformer()
-        elif scl_name == "Power Transformer":
-            scaler = preprocessing.PowerTransformer()
-        elif scl_name == "Robust Scaler":
-            scaler = preprocessing.RobustScaler()
-        else:
-            scaler = None
-        return scaler
+        train_prepared_full, X_test, train_labels_full, y_test = train_test_split(X, y, test_size=test_data,
+                                                                                  random_state=1234)
+        train_prepared, X_valid, train_labels, y_valid = train_test_split(train_prepared_full, train_labels_full,
+                                                                          test_size=0.2, random_state=1234)
 
 
-    scaler = get_scaler(scaler_name)
+        # Define the selected data scaler
+        def get_scaler(scl_name):
+            if scl_name == "Standard Scaler":
+                scaler = preprocessing.StandardScaler()
+            elif scl_name == "Normalizer":
+                scaler = preprocessing.Normalizer()
+            elif scl_name == "Min-Max Scaler":
+                scaler = preprocessing.MinMaxScaler(feature_range=(0, 1))
+            elif scl_name == "Quantile Transformer":
+                scaler = preprocessing.QuantileTransformer()
+            elif scl_name == "Power Transformer":
+                scaler = preprocessing.PowerTransformer()
+            elif scl_name == "Robust Scaler":
+                scaler = preprocessing.RobustScaler()
+            else:
+                scaler = None
+            return scaler
 
-    # Fit your data on the scaler object
-    try:
-        train_prepared = scaler.fit_transform(train_prepared)
-        X_valid = scaler.transform(X_valid)
-        X_test = scaler.transform(X_test)
-    except AttributeError:
-        train_prepared = train_prepared
-        X_test = X_test
-        X_valid = X_valid
-    except ValueError:
-        st.warning(scaler_name + " does not work this data set. Please select a different data scaler.")
-        st.warning('If issues persisted, please contact developer')
-        st.stop()
 
-    # Clear Keras backend session
-    keras.backend.clear_session()
-    np.random.seed(42)
-    tf.random.set_seed(42)
+        scaler = get_scaler(scaler_name)
 
-    # Optimizer
-    if optimizer_name == "SGD":
-        optimizer = keras.optimizers.SGD(lr=learn_rate, clipnorm=gradient_clip)
-    elif optimizer_name == "AdaGrad":
-        optimizer = keras.optimizers.Adagrad(lr=learn_rate, clipnorm=gradient_clip)
-    elif optimizer_name == "AdaDelta":
-        optimizer = keras.optimizers.Adadelta(lr=learn_rate, clipnorm=gradient_clip)
+        # Fit your data on the scaler object
+        try:
+            train_prepared = scaler.fit_transform(train_prepared)
+            X_valid = scaler.transform(X_valid)
+            X_test = scaler.transform(X_test)
+        except AttributeError:
+            train_prepared = train_prepared
+            X_test = X_test
+            X_valid = X_valid
+        except ValueError:
+            st.warning(scaler_name + " does not work this data set. Please select a different data scaler.")
+            st.warning('If issues persisted, please contact developer')
+            st.stop()
 
-    # Model development
-    def build_model(n_hidden=no_hidden, n_neurons=no_neurons, input_shape=train_prepared.shape[1:]):
-        model = keras.models.Sequential()
-        model.add(keras.layers.InputLayer(input_shape=input_shape))
-        for layer in range(n_hidden):
-            model.add(keras.layers.Dense(n_neurons, activation=activation_name, kernel_initializer=initializer_name))
-        model.add(keras.layers.Dense(1))
-        model.compile(loss="mse", optimizer=optimizer)
-        return model
+        # Clear Keras backend session
+        keras.backend.clear_session()
+        np.random.seed(42)
+        tf.random.set_seed(42)
 
-    keras_reg = build_model()
+        # Optimizer
+        if optimizer_name == "SGD":
+            optimizer = keras.optimizers.SGD(lr=learn_rate, clipnorm=gradient_clip)
+        elif optimizer_name == "AdaGrad":
+            optimizer = keras.optimizers.Adagrad(lr=learn_rate, clipnorm=gradient_clip)
+        elif optimizer_name == "AdaDelta":
+            optimizer = keras.optimizers.Adadelta(lr=learn_rate, clipnorm=gradient_clip)
 
-    # Training the model
-    with st.spinner('Calculating...'):
-        # Train the model
-        time_start = time.time()
-        history = keras_reg.fit(train_prepared, train_labels, epochs=num_epochs,
-                                validation_data=(X_valid, y_valid),
-                                callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=1000,
-                                                                         restore_best_weights=False)])
-        time_end = time.time()
 
-    # Training time
-    training_time = time_end - time_start
-    training_time = str(round(training_time, 2))
-    st.subheader('Training Time')
-    st.write(training_time + ' s')
+        # Model development
+        def build_model(n_hidden=no_hidden, n_neurons=no_neurons, input_shape=train_prepared.shape[1:]):
+            model = keras.models.Sequential()
+            model.add(keras.layers.InputLayer(input_shape=input_shape))
+            for layer in range(n_hidden):
+                model.add(
+                    keras.layers.Dense(n_neurons, activation=activation_name, kernel_initializer=initializer_name))
+            model.add(keras.layers.Dense(1))
+            model.compile(loss="mse", optimizer=optimizer)
+            return model
 
-    # Testing the model
-    mse_test = keras_reg.evaluate(X_test, y_test)
-    y_pred = keras_reg.predict(X_test)
 
-    # Calculate R2
-    from sklearn.metrics import r2_score
-    R2 = r2_score(y_test, y_pred, multioutput='variance_weighted')
-    R2 = round(R2, 4)
-    R2 = str(R2)
-    st.subheader('R2 Score')
-    st.write(R2)
-    st.subheader('MSE Score')
-    mse_test = str(round(mse_test,4))
-    st.write(mse_test)
+        keras_reg = build_model()
 
-    # Loss Graph
-    # summarize history for loss
-    if check_graph_nn == True:
-        st.subheader('Model Loss Graph')
-        st.set_option('deprecation.showPyplotGlobalUse', False)
-        plt.plot(history.history['val_loss'])
-        plt.title('Model Loss')
-        plt.ylabel('loss')
-        plt.xlabel('epoch')
-        plt.show()
-        with st.spinner('Plotting...'):
-            st.pyplot()
+        # Training the model
+        with st.spinner('Calculating...'):
+            # Train the model
+            time_start = time.time()
+            history = keras_reg.fit(train_prepared, train_labels, epochs=num_epochs,
+                                    validation_data=(X_valid, y_valid),
+                                    callbacks=[keras.callbacks.EarlyStopping(monitor='val_loss', patience=1000,
+                                                                             restore_best_weights=False)])
+            time_end = time.time()
+
+        # Training time
+        training_time = time_end - time_start
+        training_time = str(round(training_time, 2))
+        st.subheader('Training Time')
+        st.write(training_time + ' s')
+
+        # Testing the model
+        mse_test = keras_reg.evaluate(X_test, y_test)
+        y_pred = keras_reg.predict(X_test)
+
+        # Calculate R2
+        from sklearn.metrics import r2_score
+
+        R2 = r2_score(y_test, y_pred, multioutput='variance_weighted')
+        R2 = round(R2, 4)
+        R2 = str(R2)
+        st.subheader('R2 Score')
+        st.write(R2)
+        st.subheader('MSE Score')
+        mse_test = str(round(mse_test, 4))
+        st.write(mse_test)
+
+        # Loss Graph
+        # summarize history for loss
+        if check_graph_nn == True:
+            st.subheader('Model Loss Graph')
+            st.set_option('deprecation.showPyplotGlobalUse', False)
+            plt.plot(history.history['val_loss'])
+            plt.title('Model Loss')
+            plt.ylabel('loss')
+            plt.xlabel('epoch')
+            plt.show()
+            with st.spinner('Plotting...'):
+                st.pyplot()
 
